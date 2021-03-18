@@ -8,8 +8,8 @@ export class PlanController {
 	constructor(private readonly planService: PlanService) { }
 
 	@Post()
-	create(@Body() createPlanDto: CreatePlanDto) {
-		return this.planService.create(createPlanDto);
+	create(@Body() createPlanDto: CreatePlanDto, @Body() children: string[], @Body() parent: string) {
+		return this.planService.create(createPlanDto, children, parent);
 	}
 
 	@Get()
@@ -19,26 +19,16 @@ export class PlanController {
 
 	@Get(':id')
 	findOne(@Param('id') id: string) {
-		return this.planService.findOne(id);
-	}
-
-	@Get("tree/list")
-	findTree() {
-		return this.planService.findTree()
-	}
-
-	@Get("tree/detail/:id")
-	findTreeById(@Param('id') id: string) {
-		return this.planService.findTreeById(id)
+		return this.planService.findOne(+id);
 	}
 
 	@Patch(':id')
 	update(@Param('id') id: string, @Body() updatePlanDto: UpdatePlanDto) {
-		return this.planService.update(id, updatePlanDto);
+		return this.planService.update(+id, updatePlanDto);
 	}
 
 	@Delete(':id')
 	remove(@Param('id') id: string) {
-		return this.planService.remove(id);
+		return this.planService.remove(+id);
 	}
 }

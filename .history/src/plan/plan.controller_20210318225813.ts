@@ -22,16 +22,6 @@ export class PlanController {
 		return this.planService.findOne(id);
 	}
 
-	@Get("tree/list")
-	findTree() {
-		return this.planService.findTree()
-	}
-
-	@Get("tree/detail/:id")
-	findTreeById(@Param('id') id: string) {
-		return this.planService.findTreeById(id)
-	}
-
 	@Patch(':id')
 	update(@Param('id') id: string, @Body() updatePlanDto: UpdatePlanDto) {
 		return this.planService.update(id, updatePlanDto);

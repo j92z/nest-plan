@@ -10,8 +10,7 @@ export class PlanService {
 	constructor(
 		@InjectRepository(Plan)
 		private planRepository: Repository<Plan>,
-		@InjectRepository(Plan)
-		private planTreeRepository: TreeRepository<Plan>,
+		// private planTreeRepository: TreeRepository<Plan>,
 	) { }
 
 	async create(createPlanDto: CreatePlanDto) {
@@ -21,13 +20,15 @@ export class PlanService {
 		plan.costTime = createPlanDto.costTime
 		plan.startTime = createPlanDto.startTime
 		plan.sort = createPlanDto.sort
-		plan.status = createPlanDto.status
-		if (createPlanDto.children?.length > 0) {
+		if (createPlanDto.children.length > 0) {
 			plan.children = await this.planRepository.find({where: {
 				id: createPlanDto.children
 			}})
 		}
 		if (createPlanDto.parent != "") {
+			// const info = await this.planRepository.findOne(parent).then(res=>{
+			// 	console.log(res)
+			// })
 			const info = await this.planRepository.findOne(createPlanDto.parent)
 			plan.parent = info
 			console.log(plan.parent, info)
@@ -48,14 +49,13 @@ export class PlanService {
 		return this.planRepository.update(id, updatePlanDto);
 	}
 
-	async findTreeById(id: string) {
-		const plan = await this.planRepository.findOne(id);
-		return await this.planTreeRepository.findDescendantsTree(plan);
-	}
-
-	findTree() {
-		return this.planTreeRepository.findTrees()
-	}
+	// async findTree(id: number) {
+	// 	if (id > 0) {
+	// 		const plan = await this.planRepository.findOne(id);
+	// 		return await this.planTreeRepository.findDescendantsTree(plan);
+	// 	}
+	// 	return this.planTreeRepository.findTrees()
+	// }
 
 	remove(id: string) {
 		return this.planRepository.delete(id);

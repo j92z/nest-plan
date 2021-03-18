@@ -49,11 +49,10 @@ export class PlanService {
 	}
 
 	async findTreeById(id: string) {
-		const plan = await this.planRepository.findOne(id);
-		return await this.planTreeRepository.findDescendantsTree(plan);
-	}
-
-	findTree() {
+		if (id != "") {
+			const plan = await this.planRepository.findOne(id);
+			return await this.planTreeRepository.findDescendantsTree(plan);
+		}
 		return this.planTreeRepository.findTrees()
 	}
 

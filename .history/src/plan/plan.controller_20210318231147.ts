@@ -22,12 +22,12 @@ export class PlanController {
 		return this.planService.findOne(id);
 	}
 
-	@Get("tree/list")
+	@Get("/tree")
 	findTree() {
 		return this.planService.findTree()
 	}
 
-	@Get("tree/detail/:id")
+	@Get("tree/:id")
 	findTreeById(@Param('id') id: string) {
 		return this.planService.findTreeById(id)
 	}

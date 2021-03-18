@@ -12,7 +12,4 @@ export class CreatePlanDto {
 
 	sort: number;
 
-	children: string[];
-
-	parent: string;
 }

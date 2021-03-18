@@ -53,7 +53,7 @@ export class PlanService {
 		return await this.planTreeRepository.findDescendantsTree(plan);
 	}
 
-	findTree() {
+	async findTree() {
 		return this.planTreeRepository.findTrees()
 	}
 
