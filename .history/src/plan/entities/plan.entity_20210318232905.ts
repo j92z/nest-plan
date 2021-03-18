@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, TreeChildren, TreeParent, Tree } from 'typeorm';
 
 @Entity()
-@Tree("materialized-path")
+@Tree("closure-table")
 export class Plan {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;

@@ -57,8 +57,6 @@ export class PlanService {
 		// }
 		if (updatePlanDto.parent != "") {
 			plan.parent = await this.planRepository.findOne(updatePlanDto.parent)
-		} else {
-			plan.parent = null
 		}
 		return this.planRepository.update(id, plan);
 	}

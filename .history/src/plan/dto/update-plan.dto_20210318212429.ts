@@ -11,8 +11,4 @@ export class UpdatePlanDto {
 	startTime: number;
 
 	sort: number;
-
-	children: string[];
-
-	parent: string;
 }

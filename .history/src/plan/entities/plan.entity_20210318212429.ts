@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, TreeChildren, TreeParent, Tree } from 'typeorm';
 
 @Entity()
-@Tree("materialized-path")
+@Tree("closure-table")
 export class Plan {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;
@@ -25,10 +25,10 @@ export class Plan {
 	sort: number;
 
 	@CreateDateColumn()
-	createDate: Date;
+	createDate: string;
 
 	@UpdateDateColumn()
-	updateDate: Date;
+	updateDate: string;
 
 	@TreeChildren()
 	children: Plan[];
