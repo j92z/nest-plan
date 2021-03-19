@@ -22,11 +22,6 @@ export class PlanService {
 		plan.startTime = createPlanDto.startTime
 		plan.sort = createPlanDto.sort
 		plan.status = createPlanDto.status
-		// if (createPlanDto.children?.length > 0) {
-		// 	plan.children = await this.planRepository.find({where: {
-		// 		id: createPlanDto.children
-		// 	}})
-		// }
 		if (createPlanDto.parent != "") {
 			const info = await this.planRepository.findOne(createPlanDto.parent)
 			plan.parent = info
@@ -50,11 +45,6 @@ export class PlanService {
 		plan.startTime = updatePlanDto.startTime
 		plan.sort = updatePlanDto.sort
 		plan.status = updatePlanDto.status
-		// if (updatePlanDto.children?.length > 0) {
-		// 	plan.children = await this.planRepository.find({where: {
-		// 		id: In(updatePlanDto.children)
-		// 	}})
-		// }
 		if (updatePlanDto.parent != "") {
 			plan.parent = await this.planRepository.findOne(updatePlanDto.parent)
 		} else {

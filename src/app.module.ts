@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { StudentModule } from './student/student.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Connection } from 'typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PlanModule } from './plan/plan.module';
+import { UserModule } from './user/user.module';
 import config from './config/index';
 
 @Module({
@@ -27,8 +27,8 @@ import config from './config/index';
 			}),
 			inject: [ConfigService],
 		}),
-		// StudentModule,
 		PlanModule,
+		UserModule,
 	],
 	controllers: [],
 	providers: [],
