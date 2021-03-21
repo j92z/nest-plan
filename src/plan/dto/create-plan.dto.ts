@@ -8,11 +8,7 @@ export class CreatePlanDto {
 
 	costTime: number;
 
-	startTime: number;
-
 	sort: number;
-
-	children: string[];
 
 	parent: string;
 }

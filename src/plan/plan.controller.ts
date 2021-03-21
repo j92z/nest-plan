@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Query } from '@nestjs/common';
 import { PlanService } from './plan.service';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
@@ -17,7 +17,12 @@ export class PlanController {
 		return this.planService.findAll();
 	}
 
-	@Get(':id')
+	@Get('parent')
+	findListByParent(@Query('id') id: string) {
+		return this.planService.findByParent(id);
+	}
+
+	@Get('detail/:id')
 	findOne(@Param('id') id: string) {
 		return this.planService.findOne(id);
 	}
@@ -38,7 +43,11 @@ export class PlanController {
 	}
 
 	@Delete(':id')
-	remove(@Param('id') id: string) {
+	async remove(@Param('id') id: string) {
+		var childrenCount = await this.planService.countChildren(id)
+		if (childrenCount > 0) {
+			throw new HttpException("请先移除子计划", HttpStatus.BAD_REQUEST);
+		}
 		return this.planService.remove(id);
 	}
 }

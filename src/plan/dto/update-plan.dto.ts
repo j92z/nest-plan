@@ -8,11 +8,7 @@ export class UpdatePlanDto {
 
 	costTime: number;
 
-	startTime: number;
-
 	sort: number;
-
-	children: string[];
 
 	parent: string;
 }

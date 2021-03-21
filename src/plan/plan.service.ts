@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository, TreeRepository } from 'typeorm';
+import { isEmpty } from 'rxjs/operators';
+import { Repository, TreeRepository } from 'typeorm';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { Plan } from './entities/plan.entity';
@@ -19,7 +20,6 @@ export class PlanService {
 		plan.name = createPlanDto.name
 		plan.content = createPlanDto.content
 		plan.costTime = createPlanDto.costTime
-		plan.startTime = createPlanDto.startTime
 		plan.sort = createPlanDto.sort
 		plan.status = createPlanDto.status
 		if (createPlanDto.parent != "") {
@@ -30,11 +30,29 @@ export class PlanService {
 	}
 
 	findAll() {
-		return this.planRepository.find();
+		return this.planRepository.find({
+			order: {
+				sort: "DESC"
+			}
+		});
+	}
+
+	findByParent(parent: string) {
+		return this.planRepository.find({
+			where: {
+				parent: parent?parent:null,
+			},
+			order: {
+				sort: "DESC"
+			},
+			relations: ['children']
+		});
 	}
 
 	findOne(id: string) {
-		return this.planRepository.findOne(id);
+		return this.planRepository.findOne(id, {
+			relations: ['parent', 'children']
+		});
 	}
 
 	async update(id: string, updatePlanDto: UpdatePlanDto) {
@@ -42,7 +60,6 @@ export class PlanService {
 		plan.name = updatePlanDto.name
 		plan.content = updatePlanDto.content
 		plan.costTime = updatePlanDto.costTime
-		plan.startTime = updatePlanDto.startTime
 		plan.sort = updatePlanDto.sort
 		plan.status = updatePlanDto.status
 		if (updatePlanDto.parent != "") {
@@ -64,5 +81,13 @@ export class PlanService {
 
 	remove(id: string) {
 		return this.planRepository.delete(id);
+	}
+
+	async countChildren(id: string) {
+		return await this.planRepository.count({
+			where: {
+				parent: id
+			}
+		})
 	}
 }
