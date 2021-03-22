@@ -1,4 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, TreeChildren, TreeParent, Tree } from 'typeorm';
+import { Work } from 'src/work/entities/work.entity';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, TreeChildren, TreeParent, Tree, OneToMany } from 'typeorm';
+import { PlanStatus } from '../type.d/type';
 
 @Entity()
 @Tree("materialized-path")
@@ -12,8 +14,13 @@ export class Plan {
 	@Column('text')
 	content: string
 
-	@Column({ type: "tinyint", unsigned: true, default: 0, comment: "0-未开启 1-开启 2-完成" })
-	status: number;
+	@Column({
+		type: "enum",
+		enum: PlanStatus,
+		default: PlanStatus.Process,
+		comment: "-1 失败 0-进行中 1-完成"
+	})
+	status: PlanStatus;
 
 	@Column({ type: "float", unsigned: true, default: 0, precision: 10, scale: 2, comment: "需要时间 单位小时" })
 	costTime: number;
@@ -35,4 +42,9 @@ export class Plan {
 
 	@TreeParent()
 	parent: Plan;
+
+	@OneToMany(() => Work, work => work.plan)
+	works: Work[];
 }
+
+

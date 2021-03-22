@@ -4,6 +4,7 @@ import { Connection } from 'typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PlanModule } from './plan/plan.module';
 import { UserModule } from './user/user.module';
+import { WorkModule } from './work/work.module';
 import config from './config/index';
 
 @Module({
@@ -29,6 +30,7 @@ import config from './config/index';
 		}),
 		PlanModule,
 		UserModule,
+		WorkModule,
 	],
 	controllers: [],
 	providers: [],
