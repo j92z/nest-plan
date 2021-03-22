@@ -8,7 +8,7 @@ export class WorkController {
   constructor(private readonly workService: WorkService) {}
 
   @Post()
-  create(@Body() createWorkDto: CreateWorkDto, @Body() dateList: string[]) {
+  create(@Body() createWorkDto: CreateWorkDto, @Body("dateList") dateList: string[]) {
     return this.workService.create(createWorkDto, dateList);
   }
 

@@ -7,6 +7,8 @@ export class CreateWorkDto {
 	repeatType: WorkRepeatType;
 	repeatStep: number;
 	whichDay: number;
+	startDate: string;
+	endDate: string;
 	dayWorkStartTime: number;
 	dayWorkEndTime: number;
 }

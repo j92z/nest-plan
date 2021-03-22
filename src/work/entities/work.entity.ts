@@ -49,7 +49,6 @@ export class Work {
 
 	@Column({
 		type: "tinyint",
-		unsigned: true,
 		nullable: false,
 		default: 1,
 		comment: "重复周期内哪天开始"
