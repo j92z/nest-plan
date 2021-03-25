@@ -1,4 +1,15 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateWorkDto } from './create-work.dto';
+import { WorkRepeatType, WorkStatus } from "../type.d/type";
 
-export class UpdateWorkDto extends PartialType(CreateWorkDto) {}
+
+export class UpdateWorkDto {
+	name: string;
+	content: string;
+	status: WorkStatus;
+	repeatType: WorkRepeatType;
+	repeatStep: number;
+	whichDay: number;
+	startDate: string;
+	endDate: string;
+	dayWorkStartTime: number;
+	dayWorkEndTime: number;
+}

@@ -1,6 +1,6 @@
+import { Work } from "src/work/entities/work.entity";
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { WorkItemStatus, WorkStatus } from "../type.d/type";
-import { Work } from "./work.entity";
+import { WorkItemStatus } from "../typre.d/type";
 
 @Entity()
 export class WorkItem {

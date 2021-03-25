@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PlanModule } from './plan/plan.module';
 import { UserModule } from './user/user.module';
 import { WorkModule } from './work/work.module';
+import { WorkItemModule } from './work-item/work-item.module';
 import config from './config/index';
 
 @Module({
@@ -31,6 +32,7 @@ import config from './config/index';
 		PlanModule,
 		UserModule,
 		WorkModule,
+		WorkItemModule,
 	],
 	controllers: [],
 	providers: [],

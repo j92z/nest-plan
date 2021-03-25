@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { getManager, Repository } from 'typeorm';
+import { WorkItem } from 'src/work-item/entities/work-item.entity';
+import { getManager, MoreThan, Repository } from 'typeorm';
 import { CreateWorkDto } from './dto/create-work.dto';
 import { UpdateWorkDto } from './dto/update-work.dto';
 import { Work } from './entities/work.entity';
-import { WorkItem } from './entities/work_item.entity';
 import { WorkRepeatType } from './type.d/type';
 
 @Injectable()
@@ -20,12 +20,15 @@ export class WorkService {
 		if (dateList?.length == 0 || !dateList) {
 			dateList = this.genDateByRule(work.repeatType, work.repeatStep, work.whichDay, work.startDate, work.endDate);
 		}
+		var newDateList = this.filterDateList(dateList)
+		if (newDateList.length != dateList.length) {
+			throw new HttpException("不可使用比当前更早的时间作为计划内安排", HttpStatus.BAD_REQUEST);
+		}
 		return await getManager().transaction(async transactionalEntityManager => {
 			await transactionalEntityManager.save(work);
 			for (var i = 0; i < dateList.length; i ++) {
-				var item = dateList[i]
 				const workItem = new WorkItem();
-				workItem.date = item;
+				workItem.date = dateList[i];
 				workItem.dayWorkStartTime = work.dayWorkStartTime;
 				workItem.dayWorkEndTime = work.dayWorkEndTime;
 				workItem.result = '';
@@ -100,6 +103,13 @@ export class WorkService {
 		return dateList;
 	}
 
+	private filterDateList(dateList: string[]) {
+		var nowDateTimestamp = (new Date()).getTime() - 86400000
+		return dateList.filter((item) => {
+			return nowDateTimestamp <= (new Date(item)).getTime()
+		})
+	}
+
 	findAll() {
 		return `This action returns all work`;
 	}
@@ -108,11 +118,43 @@ export class WorkService {
 		return `This action returns a #${id} work`;
 	}
 
-	update(id: number, updateWorkDto: UpdateWorkDto) {
-		return `This action updates a #${id} work`;
+	async update(id: string, updateWorkDto: UpdateWorkDto, dateList: string[]) {
+		var work = await this.workRepository.findOne(id);
+		var newWork = this.workRepository.create(updateWorkDto);
+		newWork.startDate = work.startDate;
+		if (dateList?.length == 0 || !dateList) {
+			dateList = this.genDateByRule(newWork.repeatType, newWork.repeatStep, newWork.whichDay, updateWorkDto.startDate, newWork.endDate);
+		}
+		dateList = this.filterDateList(dateList)
+		if (dateList.length === 0) {
+			throw new HttpException("计划更新后工作不可为空", HttpStatus.BAD_REQUEST);
+		}
+		var workItems = await this.workItemRepository.find({
+			where: {
+				work: work,
+				date: MoreThan(new Date())
+			}
+		});
+		return await getManager().transaction(async transactionalEntityManager => {
+			await transactionalEntityManager.getRepository(Work).save(newWork);
+			await transactionalEntityManager.getRepository(WorkItem).remove(workItems);
+			for (var i = 0; i < dateList.length; i ++) {
+				const workItem = new WorkItem();
+				workItem.date = dateList[i];
+				workItem.dayWorkStartTime = work.dayWorkStartTime;
+				workItem.dayWorkEndTime = work.dayWorkEndTime;
+				workItem.result = '';
+				workItem.work = work;
+				await transactionalEntityManager.save(workItem);
+			}
+		});
 	}
 
-	remove(id: number) {
-		return `This action removes a #${id} work`;
+	async remove(id: string) {
+		var work = await this.workRepository.findOne(id)
+		return await getManager().transaction(async transactionalEntityManager => {
+			await transactionalEntityManager.getRepository(Work).remove(work);
+			await transactionalEntityManager.getRepository(WorkItem).delete({work: work})
+		});
 	}
 }

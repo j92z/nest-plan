@@ -23,12 +23,12 @@ export class WorkController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateWorkDto: UpdateWorkDto) {
-    return this.workService.update(+id, updateWorkDto);
+  update(@Param('id') id: string, @Body() updateWorkDto: UpdateWorkDto, @Body("dateList") dateList: string[]) {
+    return this.workService.update(id, updateWorkDto, dateList);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.workService.remove(+id);
+    return this.workService.remove(id);
   }
 }

@@ -3,7 +3,8 @@ import { WorkService } from './work.service';
 import { WorkController } from './work.controller';
 import { Work } from './entities/work.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { WorkItem } from './entities/work_item.entity';
+import { WorkItem } from 'src/work-item/entities/work-item.entity';
+
 
 @Module({
 	imports: [TypeOrmModule.forFeature([Work, WorkItem])],
