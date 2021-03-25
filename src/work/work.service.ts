@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { WorkItem } from 'src/work-item/entities/work-item.entity';
-import { getManager, MoreThan, Repository } from 'typeorm';
+import { getManager, LessThanOrEqual, MoreThan, MoreThanOrEqual, Repository } from 'typeorm';
 import { CreateWorkDto } from './dto/create-work.dto';
 import { UpdateWorkDto } from './dto/update-work.dto';
 import { Work } from './entities/work.entity';
@@ -26,7 +26,7 @@ export class WorkService {
 		}
 		return await getManager().transaction(async transactionalEntityManager => {
 			await transactionalEntityManager.save(work);
-			for (var i = 0; i < dateList.length; i ++) {
+			for (var i = 0; i < dateList.length; i++) {
 				const workItem = new WorkItem();
 				workItem.date = dateList[i];
 				workItem.dayWorkStartTime = work.dayWorkStartTime;
@@ -68,33 +68,33 @@ export class WorkService {
 				var thisYear = startDateObj.getFullYear();
 				if (whichDay < dateDay) {
 					if (thisMonth == 12) {
-						thisMonth = 1
-						thisYear += 1
+						thisMonth = 1;
+						thisYear += 1;
 					} else {
-						thisMonth += 1
+						thisMonth += 1;
 					}
 				}
-				var tempTimestamp = (new Date(thisYear, thisMonth, whichDay)).getTime()
+				var tempTimestamp = (new Date(thisYear, thisMonth, whichDay)).getTime();
 				while (tempTimestamp <= endTimestamp) {
 					dateList.push((new Date(tempTimestamp)).toJSON().substr(0, 10));
-					var tempDateObj = new Date(tempTimestamp)
-					var tempYear = tempDateObj.getFullYear()
-					var tempMonth = tempDateObj.getMonth()
+					var tempDateObj = new Date(tempTimestamp);
+					var tempYear = tempDateObj.getFullYear();
+					var tempMonth = tempDateObj.getMonth();
 					if (tempMonth == 12) {
-						tempMonth = 1
-						tempYear += 1
+						tempMonth = 1;
+						tempYear += 1;
 					} else {
-						tempMonth += 1
+						tempMonth += 1;
 					}
-					tempTimestamp = (new Date(tempYear, tempMonth, whichDay)).getTime()
+					tempTimestamp = (new Date(tempYear, tempMonth, whichDay)).getTime();
 				}
 				break;
 			case WorkRepeatType.Year:
 				var tempTimestamp = startTimestamp + whichDay * 86400000;
 				while (tempTimestamp <= endTimestamp) {
 					dateList.push((new Date(tempTimestamp)).toJSON().substr(0, 10));
-					var tempDateObj = new Date(tempTimestamp)
-					tempTimestamp = tempDateObj.setFullYear(tempDateObj.getFullYear() + 1)
+					var tempDateObj = new Date(tempTimestamp);
+					tempTimestamp = tempDateObj.setFullYear(tempDateObj.getFullYear() + 1);
 				}
 				break;
 			default:
@@ -104,9 +104,9 @@ export class WorkService {
 	}
 
 	private filterDateList(dateList: string[]) {
-		var nowDateTimestamp = (new Date()).getTime() - 86400000
+		var nowDateTimestamp = (new Date()).getTime() - 86400000;
 		return dateList.filter((item) => {
-			return nowDateTimestamp <= (new Date(item)).getTime()
+			return nowDateTimestamp <= (new Date(item)).getTime();
 		})
 	}
 
@@ -114,8 +114,17 @@ export class WorkService {
 		return `This action returns all work`;
 	}
 
-	findOne(id: number) {
-		return `This action returns a #${id} work`;
+	findOne(id: string) {
+		return this.workRepository.findOne(id, { relations: ['workItems'] });
+	}
+
+	findDateCollection(startDate: string, endDate: string) {
+		var workItems = this.workItemRepository.createQueryBuilder()
+			.relation(Work, "work")
+			.where("date >= :startDate OR date <= :endDate", { startDate, endDate }).getMany();
+		var dateCollection: Map<string, WorkItem>;
+
+
 	}
 
 	async update(id: string, updateWorkDto: UpdateWorkDto, dateList: string[]) {
@@ -136,13 +145,13 @@ export class WorkService {
 			}
 		});
 		return await getManager().transaction(async transactionalEntityManager => {
-			await transactionalEntityManager.getRepository(Work).save(newWork);
+			await transactionalEntityManager.getRepository(Work).update(id, newWork);
 			await transactionalEntityManager.getRepository(WorkItem).remove(workItems);
-			for (var i = 0; i < dateList.length; i ++) {
+			for (var i = 0; i < dateList.length; i++) {
 				const workItem = new WorkItem();
 				workItem.date = dateList[i];
-				workItem.dayWorkStartTime = work.dayWorkStartTime;
-				workItem.dayWorkEndTime = work.dayWorkEndTime;
+				workItem.dayWorkStartTime = newWork.dayWorkStartTime;
+				workItem.dayWorkEndTime = newWork.dayWorkEndTime;
 				workItem.result = '';
 				workItem.work = work;
 				await transactionalEntityManager.save(workItem);
@@ -152,9 +161,14 @@ export class WorkService {
 
 	async remove(id: string) {
 		var work = await this.workRepository.findOne(id)
+		var workItems = await this.workItemRepository.find({
+			where: {
+				work: work
+			}
+		})
 		return await getManager().transaction(async transactionalEntityManager => {
+			await transactionalEntityManager.getRepository(WorkItem).remove(workItems);
 			await transactionalEntityManager.getRepository(Work).remove(work);
-			await transactionalEntityManager.getRepository(WorkItem).delete({work: work})
 		});
 	}
 }

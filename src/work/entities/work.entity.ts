@@ -1,7 +1,7 @@
 import { Plan } from "src/plan/entities/plan.entity";
+import { WorkItem } from "src/work-item/entities/work-item.entity";
 import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { WorkRepeatType, WorkStatus } from "../type.d/type";
-import { WorkItem } from "./work_item.entity";
 
 
 @Entity()
