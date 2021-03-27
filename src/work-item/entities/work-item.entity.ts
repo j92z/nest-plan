@@ -39,7 +39,7 @@ export class WorkItem {
 		default: WorkItemStatus.Process,
 		comment: "日常工作状态"
 	})
-	status: string;
+	status: WorkItemStatus;
 
 	@Column({
 		type: "text",

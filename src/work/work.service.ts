@@ -1,11 +1,12 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { WorkItem } from 'src/work-item/entities/work-item.entity';
+import { WorkItemStatus } from 'src/work-item/typre.d/type';
 import { getManager, LessThanOrEqual, MoreThan, MoreThanOrEqual, Repository } from 'typeorm';
 import { CreateWorkDto } from './dto/create-work.dto';
 import { UpdateWorkDto } from './dto/update-work.dto';
 import { Work } from './entities/work.entity';
-import { WorkRepeatType } from './type.d/type';
+import { WorkRepeatType, WorkStatus } from './type.d/type';
 
 @Injectable()
 export class WorkService {
@@ -111,20 +112,27 @@ export class WorkService {
 	}
 
 	findAll() {
-		return `This action returns all work`;
+		return this.workRepository.find({ relations: ['workItems'] });
 	}
 
 	findOne(id: string) {
 		return this.workRepository.findOne(id, { relations: ['workItems'] });
 	}
 
-	findDateCollection(startDate: string, endDate: string) {
-		var workItems = this.workItemRepository.createQueryBuilder()
-			.relation(Work, "work")
-			.where("date >= :startDate OR date <= :endDate", { startDate, endDate }).getMany();
-		var dateCollection: Map<string, WorkItem>;
-
-
+	async findDateCollection(startDate: string, endDate: string) {
+		var workItems = await this.workItemRepository.createQueryBuilder("workItem")
+			.leftJoinAndSelect("workItem.work", 'work')
+			.where("workItem.date >= :startDate OR workItem.date <= :endDate", { startDate, endDate })
+			.orderBy('workItem.date', 'ASC').getMany();
+		var dateCollection: Map<string, WorkItem[]> = new Map();
+		workItems.map((item) => {
+			if (dateCollection[item.date] === undefined) {
+				dateCollection[item.date] = [item];
+			} else {
+				dateCollection[item.date].push(item);
+			}
+		})
+		return dateCollection;
 	}
 
 	async update(id: string, updateWorkDto: UpdateWorkDto, dateList: string[]) {
@@ -170,5 +178,19 @@ export class WorkService {
 			await transactionalEntityManager.getRepository(WorkItem).remove(workItems);
 			await transactionalEntityManager.getRepository(Work).remove(work);
 		});
+	}
+
+	async done(id: string) {
+		var work = await this.workRepository.findOne(id);
+		var itemNotDoneCount = await this.workItemRepository.count({
+			where: {
+				work: work,
+				status: WorkItemStatus.Process
+			}
+		});
+		if (itemNotDoneCount > 0) {
+			return false
+		}
+		return await this.workRepository.update(id, { status: WorkStatus.Success });
 	}
 }
