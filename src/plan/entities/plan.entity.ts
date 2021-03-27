@@ -8,7 +8,11 @@ export class Plan {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;
 
-	@Column({ default: "", nullable: false, comment: "计划名称" })
+	@Column({
+		default: "",
+		nullable: false,
+		comment: "计划名称"
+	})
 	name: string;
 
 	@Column('text')
@@ -22,14 +26,36 @@ export class Plan {
 	})
 	status: PlanStatus;
 
-	@Column({ type: "float", unsigned: true, default: 0, precision: 10, scale: 2, comment: "需要时间 单位小时" })
+	@Column({
+		type: "float",
+		unsigned: true,
+		default: 0,
+		precision: 10,
+		scale: 2,
+		comment: "需要时间 单位小时"
+	})
 	costTime: number;
 
-	@Column({ default: 0, unsigned: true, comment: "开始时间" })
+	@Column({
+		default: 0,
+		unsigned: true,
+		comment: "开始时间"
+	})
 	startTime: number;
 
-	@Column({ type: "smallint", unsigned: true, default: 0, comment: "排序" })
+	@Column({
+		type: "smallint",
+		unsigned: true,
+		default: 0,
+		comment: "排序"
+	})
 	sort: number;
+
+	@Column({
+		default: '',
+		comment: "级联路径"
+	})
+	planCascaderPath: string;
 
 	@CreateDateColumn()
 	createDate: Date;

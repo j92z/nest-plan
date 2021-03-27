@@ -12,6 +12,11 @@ export class PlanController {
 		return this.planService.create(createPlanDto);
 	}
 
+	@Post('/done/:id')
+	done(@Param('id') id: string) {
+		return this.planService.done(id);
+	}
+
 	@Get()
 	findAll() {
 		return this.planService.findAll();

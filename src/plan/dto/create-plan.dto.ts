@@ -13,4 +13,6 @@ export class CreatePlanDto {
 	sort: number;
 
 	parent: string;
+
+	planCascaderPath: string;
 }

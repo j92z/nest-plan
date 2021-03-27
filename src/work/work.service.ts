@@ -1,8 +1,10 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Plan } from 'src/plan/entities/plan.entity';
+import { PlanService } from 'src/plan/plan.service';
+import { PlanStatus } from 'src/plan/type.d/type';
 import { WorkItem } from 'src/work-item/entities/work-item.entity';
-import { WorkItemStatus } from 'src/work-item/typre.d/type';
-import { getManager, LessThanOrEqual, MoreThan, MoreThanOrEqual, Repository } from 'typeorm';
+import { EntityManager, getManager, MoreThan, Repository } from 'typeorm';
 import { CreateWorkDto } from './dto/create-work.dto';
 import { UpdateWorkDto } from './dto/update-work.dto';
 import { Work } from './entities/work.entity';
@@ -15,9 +17,16 @@ export class WorkService {
 		private workRepository: Repository<Work>,
 		@InjectRepository(WorkItem)
 		private workItemRepository: Repository<WorkItem>,
+		@InjectRepository(Plan)
+		private planRepository: Repository<Plan>,
+		private readonly planService: PlanService,
 	) { }
-	async create(createWorkDto: CreateWorkDto, dateList: string[]) {
+	async create(createWorkDto: CreateWorkDto, dateList: string[], planId: string) {
 		const work = this.workRepository.create(createWorkDto);
+		if (planId) {
+			const plan = await this.planRepository.findOne(planId);
+			work.plan = plan;
+		}
 		if (dateList?.length == 0 || !dateList) {
 			dateList = this.genDateByRule(work.repeatType, work.repeatStep, work.whichDay, work.startDate, work.endDate);
 		}
@@ -116,7 +125,7 @@ export class WorkService {
 	}
 
 	findOne(id: string) {
-		return this.workRepository.findOne(id, { relations: ['workItems'] });
+		return this.workRepository.findOne(id, { relations: ['workItems', 'plan'] });
 	}
 
 	async findDateCollection(startDate: string, endDate: string) {
@@ -135,9 +144,13 @@ export class WorkService {
 		return dateCollection;
 	}
 
-	async update(id: string, updateWorkDto: UpdateWorkDto, dateList: string[]) {
+	async update(id: string, updateWorkDto: UpdateWorkDto, dateList: string[], planId: string) {
 		var work = await this.workRepository.findOne(id);
 		var newWork = this.workRepository.create(updateWorkDto);
+		if (planId) {
+			const plan = await this.planRepository.findOne(planId);
+			newWork.plan = plan;
+		}
 		newWork.startDate = work.startDate;
 		if (dateList?.length == 0 || !dateList) {
 			dateList = this.genDateByRule(newWork.repeatType, newWork.repeatStep, newWork.whichDay, updateWorkDto.startDate, newWork.endDate);
@@ -181,16 +194,32 @@ export class WorkService {
 	}
 
 	async done(id: string) {
-		var work = await this.workRepository.findOne(id);
-		var itemNotDoneCount = await this.workItemRepository.count({
-			where: {
-				work: work,
-				status: WorkItemStatus.Process
-			}
+		return await getManager().transaction(async transactionalEntityManager => {
+			await this.transactionDone(transactionalEntityManager, id);
 		});
-		if (itemNotDoneCount > 0) {
-			return false
+	}
+
+	async transactionDone(transactionalEntityManager: EntityManager, id: string) {
+		var work = await this.workRepository.findOne(id, { relations: ['plan'] });
+		await transactionalEntityManager.getRepository(Work).update(id, { status: WorkStatus.Success });
+		if (work.plan?.id) {
+			var workNotDone = await this.workRepository.find({
+				where: {
+					plan: work.plan,
+					status: WorkStatus.Process
+				}
+			});
+			var planNotDoneCount = await this.planRepository.count({
+				where: {
+					parent: work.plan,
+					status: PlanStatus.Process
+				}
+			});
+			if (((workNotDone.length === 1 && workNotDone[0].id === id)
+				|| workNotDone.length === 0)
+				&& planNotDoneCount === 0) {
+				await this.planService.transactionDone(transactionalEntityManager, work.plan.id);
+			}
 		}
-		return await this.workRepository.update(id, { status: WorkStatus.Success });
 	}
 }

@@ -11,4 +11,6 @@ export class UpdatePlanDto {
 	sort: number;
 
 	parent: string;
+
+	planCascaderPath: string;
 }

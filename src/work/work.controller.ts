@@ -8,8 +8,13 @@ export class WorkController {
 	constructor(private readonly workService: WorkService) { }
 
 	@Post()
-	create(@Body() createWorkDto: CreateWorkDto, @Body("dateList") dateList: string[]) {
-		return this.workService.create(createWorkDto, dateList);
+	create(@Body() createWorkDto: CreateWorkDto, @Body("dateList") dateList: string[], @Body("planId") planId: string) {
+		return this.workService.create(createWorkDto, dateList, planId);
+	}
+
+	@Post('/done/:id')
+	done(@Param('id') id: string) {
+		return this.workService.done(id);
 	}
 
 	@Get()
@@ -28,8 +33,8 @@ export class WorkController {
 	}
 
 	@Patch(':id')
-	update(@Param('id') id: string, @Body() updateWorkDto: UpdateWorkDto, @Body("dateList") dateList: string[]) {
-		return this.workService.update(id, updateWorkDto, dateList);
+	update(@Param('id') id: string, @Body() updateWorkDto: UpdateWorkDto, @Body("dateList") dateList: string[], @Body("planId") planId: string) {
+		return this.workService.update(id, updateWorkDto, dateList, planId);
 	}
 
 	@Delete(':id')

@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { isEmpty } from 'rxjs/operators';
-import { Repository, TreeRepository } from 'typeorm';
+import { Work } from 'src/work/entities/work.entity';
+import { WorkStatus } from 'src/work/type.d/type';
+import { EntityManager, getManager, Repository, TreeRepository } from 'typeorm';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { Plan } from './entities/plan.entity';
+import { PlanStatus } from './type.d/type';
 
 @Injectable()
 export class PlanService {
@@ -13,6 +15,8 @@ export class PlanService {
 		private planRepository: Repository<Plan>,
 		@InjectRepository(Plan)
 		private planTreeRepository: TreeRepository<Plan>,
+		@InjectRepository(Work)
+		private workRepository: Repository<Work>,
 	) { }
 
 	async create(createPlanDto: CreatePlanDto) {
@@ -22,6 +26,7 @@ export class PlanService {
 		plan.costTime = createPlanDto.costTime
 		plan.sort = createPlanDto.sort
 		plan.status = createPlanDto.status
+		plan.planCascaderPath = createPlanDto.planCascaderPath
 		if (createPlanDto.parent != "") {
 			const info = await this.planRepository.findOne(createPlanDto.parent)
 			plan.parent = info
@@ -40,7 +45,7 @@ export class PlanService {
 	findByParent(parent: string) {
 		return this.planRepository.find({
 			where: {
-				parent: parent?parent:null,
+				parent: parent ? parent : null,
 			},
 			order: {
 				sort: "DESC"
@@ -51,7 +56,7 @@ export class PlanService {
 
 	findOne(id: string) {
 		return this.planRepository.findOne(id, {
-			relations: ['parent', 'children']
+			relations: ['parent', 'children', 'works']
 		});
 	}
 
@@ -62,6 +67,7 @@ export class PlanService {
 		plan.costTime = updatePlanDto.costTime
 		plan.sort = updatePlanDto.sort
 		plan.status = updatePlanDto.status
+		plan.planCascaderPath = updatePlanDto.planCascaderPath
 		if (updatePlanDto.parent != "") {
 			plan.parent = await this.planRepository.findOne(updatePlanDto.parent)
 		} else {
@@ -89,5 +95,36 @@ export class PlanService {
 				parent: id
 			}
 		})
+	}
+
+
+	async done(id: string) {
+		return await getManager().transaction(async transactionalEntityManager => {
+			await this.transactionDone(transactionalEntityManager, id);
+		});
+	}
+
+	async transactionDone(transactionalEntityManager: EntityManager, id: string) {
+		var plan = await this.planRepository.findOne(id, { relations: ['parent'] });
+		await transactionalEntityManager.getRepository(Plan).update(id, { status: PlanStatus.Success });
+		if (plan.parent?.id) {
+			var planNotDone = await this.planRepository.find({
+				where: {
+					parent: plan.parent,
+					status: PlanStatus.Process
+				}
+			});
+			var workNotDoneCount = await this.workRepository.count({
+				where: {
+					plan: plan.parent,
+					status: WorkStatus.Process
+				}
+			});
+			if (workNotDoneCount === 0 &&
+				(planNotDone.length === 0
+					|| (planNotDone.length === 1 && planNotDone[0].id === id))) {
+				await this.transactionDone(transactionalEntityManager, plan.parent.id);
+			}
+		}
 	}
 }

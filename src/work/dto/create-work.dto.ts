@@ -11,4 +11,6 @@ export class CreateWorkDto {
 	endDate: string;
 	dayWorkStartTime: number;
 	dayWorkEndTime: number;
+	sort: number;
+	planCascaderPath: string;
 }

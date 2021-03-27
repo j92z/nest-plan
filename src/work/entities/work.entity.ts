@@ -87,6 +87,20 @@ export class Work {
 	})
 	endDate: string;
 
+	@Column({
+		type: "smallint",
+		unsigned: true,
+		default: 0,
+		comment: "排序"
+	})
+	sort: number;
+
+	@Column({
+		default: '',
+		comment: "级联路径"
+	})
+	planCascaderPath: string;
+
 	@ManyToOne(() => Plan, plan => plan.works)
 	plan: Plan;
 
