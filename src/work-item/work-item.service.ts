@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { stringify } from 'node:querystring';
 import { WorkService } from 'src/work/work.service';
 import { getManager, Repository } from 'typeorm';
 import { WorkItem } from './entities/work-item.entity';
@@ -23,14 +24,18 @@ export class WorkItemService {
 		var itemNotDone = await this.workItemRepository.find({
 			where: {
 				work: workItem.work,
-				status: WorkItemStatus.Process
+				status: WorkItemStatus.Process.toString()
 			}
 		});
 		return await getManager().transaction(async transactionalEntityManager => {
 			await transactionalEntityManager.getRepository(WorkItem).update(id, { status: WorkItemStatus.Success });
 			if ((itemNotDone.length === 1 && itemNotDone[0].id === id) || itemNotDone.length === 0) {
-				await this.workService.transactionDone(transactionalEntityManager, workItem.work.id)
+				await this.workService.transactionDone(transactionalEntityManager, workItem.work.id);
 			}
 		});
+	}
+
+	fail(id: string) {
+		return this.workItemRepository.update(id, { status: WorkItemStatus.Fail });
 	}
 }

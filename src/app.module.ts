@@ -6,6 +6,7 @@ import { PlanModule } from './plan/plan.module';
 import { UserModule } from './user/user.module';
 import { WorkModule } from './work/work.module';
 import { WorkItemModule } from './work-item/work-item.module';
+import { AuthModule } from './auth/auth.module';
 import config from './config/index';
 
 @Module({
@@ -33,6 +34,7 @@ import config from './config/index';
 		UserModule,
 		WorkModule,
 		WorkItemModule,
+		AuthModule,
 	],
 	controllers: [],
 	providers: [],

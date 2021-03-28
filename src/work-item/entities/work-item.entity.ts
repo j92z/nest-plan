@@ -1,3 +1,4 @@
+import { User } from "src/user/entities/user.entity";
 import { Work } from "src/work/entities/work.entity";
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { WorkItemStatus } from "../typre.d/type";
@@ -50,4 +51,7 @@ export class WorkItem {
 
 	@ManyToOne(() => Work, work => work.workItems)
 	work: Work;
+
+	@ManyToOne(() => User, user => user.workItems)
+	user: User;
 }

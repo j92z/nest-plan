@@ -1,4 +1,5 @@
 import { Plan } from "src/plan/entities/plan.entity";
+import { User } from "src/user/entities/user.entity";
 import { WorkItem } from "src/work-item/entities/work-item.entity";
 import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { WorkRepeatType, WorkStatus } from "../type.d/type";
@@ -106,4 +107,7 @@ export class Work {
 
 	@OneToMany(() => WorkItem, workItems => workItems.work)
 	workItems: WorkItem[];
+
+	@ManyToOne(() => User, user => user.works)
+	user: User;
 }

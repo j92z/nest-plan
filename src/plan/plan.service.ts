@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { User } from 'src/user/entities/user.entity';
 import { Work } from 'src/work/entities/work.entity';
 import { WorkStatus } from 'src/work/type.d/type';
 import { EntityManager, getManager, Repository, TreeRepository } from 'typeorm';
@@ -17,18 +18,17 @@ export class PlanService {
 		private planTreeRepository: TreeRepository<Plan>,
 		@InjectRepository(Work)
 		private workRepository: Repository<Work>,
+		@InjectRepository(User)
+		private userRepository: Repository<User>,
 	) { }
 
-	async create(createPlanDto: CreatePlanDto) {
-		const plan = new Plan()
-		plan.name = createPlanDto.name
-		plan.content = createPlanDto.content
-		plan.costTime = createPlanDto.costTime
-		plan.sort = createPlanDto.sort
-		plan.status = createPlanDto.status
-		plan.planCascaderPath = createPlanDto.planCascaderPath
-		if (createPlanDto.parent != "") {
-			const info = await this.planRepository.findOne(createPlanDto.parent)
+	async create(userId: string, createPlanDto: CreatePlanDto, parent: string) {
+		const user = await this.userRepository.findOne(userId)
+		const plan = this.planRepository.create(createPlanDto)
+		plan.status = PlanStatus.Process
+		plan.user = user
+		if (parent != "") {
+			const info = await this.planRepository.findOne(parent)
 			plan.parent = info
 		}
 		return this.planRepository.save(plan);
@@ -42,10 +42,12 @@ export class PlanService {
 		});
 	}
 
-	findByParent(parent: string) {
+	async findByParent(userId: string, parent: string) {
+		const user = await this.userRepository.findOne(userId)
 		return this.planRepository.find({
 			where: {
 				parent: parent ? parent : null,
+				user: user
 			},
 			order: {
 				sort: "DESC"
@@ -61,12 +63,10 @@ export class PlanService {
 	}
 
 	async update(id: string, updatePlanDto: UpdatePlanDto) {
-		const plan = new Plan()
+		const plan = await this.planRepository.findOne(id)
 		plan.name = updatePlanDto.name
 		plan.content = updatePlanDto.content
-		plan.costTime = updatePlanDto.costTime
 		plan.sort = updatePlanDto.sort
-		plan.status = updatePlanDto.status
 		plan.planCascaderPath = updatePlanDto.planCascaderPath
 		if (updatePlanDto.parent != "") {
 			plan.parent = await this.planRepository.findOne(updatePlanDto.parent)
@@ -81,8 +81,34 @@ export class PlanService {
 		return await this.planTreeRepository.findDescendantsTree(plan);
 	}
 
-	findTree() {
-		return this.planTreeRepository.findTrees()
+	async findTree(userId: string) {
+		const user = await this.userRepository.findOne(userId)
+		return this.findUserPlanTree(user, null);
+	}
+
+	private async findUserPlanTree(user: User, parent: Plan | null) {
+		var planList = await this.planRepository.find({
+			where: {
+				parent: parent,
+				user: user
+			},
+			order: {
+				sort: "DESC"
+			},
+			relations: ['children']
+		});
+		for (var key in planList) {
+			for (var childrenKey in planList[key].children) {
+				planList[key].children[childrenKey].children = await this.findUserPlanTree(user, planList[key].children[childrenKey]);
+				if (planList[key].children[childrenKey].children.length === 0) {
+					delete planList[key].children[childrenKey].children;
+				}
+			}
+			if (planList[key].children.length === 0) {
+				delete planList[key].children;
+			}
+		}
+		return planList;
 	}
 
 	remove(id: string) {
@@ -111,13 +137,13 @@ export class PlanService {
 			var planNotDone = await this.planRepository.find({
 				where: {
 					parent: plan.parent,
-					status: PlanStatus.Process
+					status: PlanStatus.Process.toString()
 				}
 			});
 			var workNotDoneCount = await this.workRepository.count({
 				where: {
 					plan: plan.parent,
-					status: WorkStatus.Process
+					status: WorkStatus.Process.toString()
 				}
 			});
 			if (workNotDoneCount === 0 &&
@@ -126,5 +152,9 @@ export class PlanService {
 				await this.transactionDone(transactionalEntityManager, plan.parent.id);
 			}
 		}
+	}
+
+	fail(id: string) {
+		return this.planRepository.update(id, { status: PlanStatus.Fail });
 	}
 }

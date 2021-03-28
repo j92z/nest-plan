@@ -3,8 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Plan } from 'src/plan/entities/plan.entity';
 import { PlanService } from 'src/plan/plan.service';
 import { PlanStatus } from 'src/plan/type.d/type';
+import { User } from 'src/user/entities/user.entity';
 import { WorkItem } from 'src/work-item/entities/work-item.entity';
-import { EntityManager, getManager, MoreThan, Repository } from 'typeorm';
+import { Brackets, EntityManager, getManager, MoreThan, Repository } from 'typeorm';
 import { CreateWorkDto } from './dto/create-work.dto';
 import { UpdateWorkDto } from './dto/update-work.dto';
 import { Work } from './entities/work.entity';
@@ -19,10 +20,15 @@ export class WorkService {
 		private workItemRepository: Repository<WorkItem>,
 		@InjectRepository(Plan)
 		private planRepository: Repository<Plan>,
+		@InjectRepository(User)
+		private userRepository: Repository<User>,
 		private readonly planService: PlanService,
 	) { }
-	async create(createWorkDto: CreateWorkDto, dateList: string[], planId: string) {
+	async create(userId: string, createWorkDto: CreateWorkDto, dateList: string[], planId: string) {
+		const user = await this.userRepository.findOne(userId);
 		const work = this.workRepository.create(createWorkDto);
+		work.status = WorkStatus.Process
+		work.user = user;
 		if (planId) {
 			const plan = await this.planRepository.findOne(planId);
 			work.plan = plan;
@@ -43,6 +49,7 @@ export class WorkService {
 				workItem.dayWorkEndTime = work.dayWorkEndTime;
 				workItem.result = '';
 				workItem.work = work;
+				workItem.user = user;
 				await transactionalEntityManager.save(workItem);
 			}
 		});
@@ -128,10 +135,18 @@ export class WorkService {
 		return this.workRepository.findOne(id, { relations: ['workItems', 'plan'] });
 	}
 
-	async findDateCollection(startDate: string, endDate: string) {
+	async findDateCollection(userId: string, startDate: string, endDate: string) {
 		var workItems = await this.workItemRepository.createQueryBuilder("workItem")
 			.leftJoinAndSelect("workItem.work", 'work')
-			.where("workItem.date >= :startDate OR workItem.date <= :endDate", { startDate, endDate })
+			.where(new Brackets(qb => {
+				qb.where("workItem.userId = :userId", { userId })
+				if (startDate) {
+					qb.andWhere("workItem.date >= :startDate", { startDate })
+				}
+				if (endDate) {
+					qb.andWhere("workItem.date <= :endDate", { endDate })
+				}
+			}))
 			.orderBy('workItem.date', 'ASC').getMany();
 		var dateCollection: Map<string, WorkItem[]> = new Map();
 		workItems.map((item) => {
@@ -145,15 +160,24 @@ export class WorkService {
 	}
 
 	async update(id: string, updateWorkDto: UpdateWorkDto, dateList: string[], planId: string) {
-		var work = await this.workRepository.findOne(id);
-		var newWork = this.workRepository.create(updateWorkDto);
+		var work = await this.workRepository.findOne(id, { relations: ['user'] });
+		work.name = updateWorkDto.name;
+		work.content = updateWorkDto.content;
+		work.repeatType = updateWorkDto.repeatType;
+		work.repeatStep = updateWorkDto.repeatStep;
+		work.whichDay = updateWorkDto.whichDay;
+		work.startDate = updateWorkDto.startDate;
+		work.endDate = updateWorkDto.endDate;
+		work.dayWorkStartTime = updateWorkDto.dayWorkStartTime;
+		work.dayWorkEndTime = updateWorkDto.dayWorkEndTime;
+		work.sort = updateWorkDto.sort;
+		work.planCascaderPath = updateWorkDto.planCascaderPath;
 		if (planId) {
 			const plan = await this.planRepository.findOne(planId);
-			newWork.plan = plan;
+			work.plan = plan;
 		}
-		newWork.startDate = work.startDate;
 		if (dateList?.length == 0 || !dateList) {
-			dateList = this.genDateByRule(newWork.repeatType, newWork.repeatStep, newWork.whichDay, updateWorkDto.startDate, newWork.endDate);
+			dateList = this.genDateByRule(work.repeatType, work.repeatStep, work.whichDay, work.startDate, work.endDate);
 		}
 		dateList = this.filterDateList(dateList)
 		if (dateList.length === 0) {
@@ -166,15 +190,16 @@ export class WorkService {
 			}
 		});
 		return await getManager().transaction(async transactionalEntityManager => {
-			await transactionalEntityManager.getRepository(Work).update(id, newWork);
+			await transactionalEntityManager.getRepository(Work).update(id, work);
 			await transactionalEntityManager.getRepository(WorkItem).remove(workItems);
 			for (var i = 0; i < dateList.length; i++) {
 				const workItem = new WorkItem();
 				workItem.date = dateList[i];
-				workItem.dayWorkStartTime = newWork.dayWorkStartTime;
-				workItem.dayWorkEndTime = newWork.dayWorkEndTime;
+				workItem.dayWorkStartTime = work.dayWorkStartTime;
+				workItem.dayWorkEndTime = work.dayWorkEndTime;
 				workItem.result = '';
 				workItem.work = work;
+				workItem.user = work.user;
 				await transactionalEntityManager.save(workItem);
 			}
 		});
@@ -206,13 +231,13 @@ export class WorkService {
 			var workNotDone = await this.workRepository.find({
 				where: {
 					plan: work.plan,
-					status: WorkStatus.Process
+					status: WorkStatus.Process.toString()
 				}
 			});
 			var planNotDoneCount = await this.planRepository.count({
 				where: {
 					parent: work.plan,
-					status: PlanStatus.Process
+					status: PlanStatus.Process.toString()
 				}
 			});
 			if (((workNotDone.length === 1 && workNotDone[0].id === id)
@@ -221,5 +246,9 @@ export class WorkService {
 				await this.planService.transactionDone(transactionalEntityManager, work.plan.id);
 			}
 		}
+	}
+
+	fail(id: string) {
+		return this.workRepository.update(id, { status: WorkStatus.Fail });
 	}
 }
