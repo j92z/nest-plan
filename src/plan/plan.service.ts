@@ -30,6 +30,8 @@ export class PlanService {
 		if (parent != "") {
 			const info = await this.planRepository.findOne(parent)
 			plan.parent = info
+		} else {
+			plan.parent = null
 		}
 		return this.planRepository.save(plan);
 	}

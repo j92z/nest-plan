@@ -29,7 +29,7 @@ export class PlanController {
 	@UseGuards(JwtAuthGuard)
 	@Get('parent')
 	findListByParent(@Request() req, @Query('id') id: string) {
-		console.log(req)
+		// console.log(req)
 		return this.planService.findByParent(req.user.id, id);
 	}
 
