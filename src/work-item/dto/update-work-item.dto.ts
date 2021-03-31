@@ -1,4 +1,10 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateWorkItemDto } from './create-work-item.dto';
-
-export class UpdateWorkItemDto extends PartialType(CreateWorkItemDto) {}
+export class UpdateWorkItemDto {
+	name: string;
+	content: string;
+	date: string;
+	dayWorkStartTime: number;
+	dayWorkEndTime: number;
+	planId: string;
+	workId: string;
+	planCascaderPath: string;
+}

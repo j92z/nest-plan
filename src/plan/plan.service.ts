@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
+import { WorkItem } from 'src/work-item/entities/work-item.entity';
 import { Work } from 'src/work/entities/work.entity';
 import { WorkStatus } from 'src/work/type.d/type';
 import { EntityManager, getManager, Repository, TreeRepository } from 'typeorm';
@@ -20,6 +21,8 @@ export class PlanService {
 		private workRepository: Repository<Work>,
 		@InjectRepository(User)
 		private userRepository: Repository<User>,
+		@InjectRepository(WorkItem)
+		private workItemRepository: Repository<WorkItem>
 	) { }
 
 	async create(userId: string, createPlanDto: CreatePlanDto, parent: string) {
@@ -60,7 +63,7 @@ export class PlanService {
 
 	findOne(id: string) {
 		return this.planRepository.findOne(id, {
-			relations: ['parent', 'children', 'works']
+			relations: ['parent', 'children', 'works', 'workItems']
 		});
 	}
 
@@ -70,7 +73,7 @@ export class PlanService {
 		plan.content = updatePlanDto.content
 		plan.sort = updatePlanDto.sort
 		plan.planCascaderPath = updatePlanDto.planCascaderPath
-		if (updatePlanDto.parent != "") {
+		if (updatePlanDto.parent) {
 			plan.parent = await this.planRepository.findOne(updatePlanDto.parent)
 		} else {
 			plan.parent = null
@@ -113,8 +116,25 @@ export class PlanService {
 		return planList;
 	}
 
-	remove(id: string) {
-		return this.planRepository.delete(id);
+	async remove(id: string) {
+		return await getManager().transaction(async transactionalEntityManager => {
+			await this.transactionRemove(transactionalEntityManager, id)
+		});
+	}
+
+	async transactionRemove(transactionalEntityManager: EntityManager, id: string) {
+		var plan = await this.planRepository.findOne(id, {relations: ['children', 'works', 'workItems']})
+		if (plan.children.length > 0) {
+			for (var i = 0; i < plan.children.length; i++ ) {
+				console.log(plan.children[i])
+				await this.transactionRemove(transactionalEntityManager, plan.children[i].id)
+			}
+		}
+		var workItems = await this.workItemRepository.find({ where: { plan: plan } })
+		var works = await this.workRepository.find({ where: { plan: plan } })
+		await transactionalEntityManager.getRepository(WorkItem).remove(workItems);
+		await transactionalEntityManager.getRepository(Work).remove(works);
+		await transactionalEntityManager.getRepository(Plan).remove(plan);
 	}
 
 	async countChildren(id: string) {
@@ -159,4 +179,6 @@ export class PlanService {
 	fail(id: string) {
 		return this.planRepository.update(id, { status: PlanStatus.Fail });
 	}
+
 }
+

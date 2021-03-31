@@ -1,3 +1,4 @@
+import { Plan } from "src/plan/entities/plan.entity";
 import { User } from "src/user/entities/user.entity";
 import { Work } from "src/work/entities/work.entity";
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
@@ -10,6 +11,20 @@ export class WorkItem {
 	id: string;
 
 	@Column({
+		nullable: false,
+		default: "",
+		comment: "工作名称"
+	})
+	name: string;
+
+	@Column({
+		type: "text",
+		nullable: false,
+		comment: "工作内容"
+	})
+	content: string;
+
+	@Column({
 		type: "date",
 		nullable: false,
 		comment: "工作日期"
@@ -20,7 +35,7 @@ export class WorkItem {
 		type: "int",
 		unsigned: true,
 		nullable: false,
-		default: 1,
+		default: 0,
 		comment: "工作约束开始时间"
 	})
 	dayWorkStartTime: number;
@@ -29,7 +44,7 @@ export class WorkItem {
 		type: "int",
 		unsigned: true,
 		nullable: false,
-		default: 86399,
+		default: 0,
 		comment: "工作约束结束时间"
 	})
 	dayWorkEndTime: number;
@@ -49,9 +64,18 @@ export class WorkItem {
 	})
 	result: string;
 
+	@Column({
+		default: '',
+		comment: "级联路径"
+	})
+	planCascaderPath: string;
+
 	@ManyToOne(() => Work, work => work.workItems)
 	work: Work;
 
 	@ManyToOne(() => User, user => user.workItems)
 	user: User;
+
+	@ManyToOne(() => Plan, plan => plan.workItems)
+	plan: Plan;
 }

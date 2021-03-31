@@ -29,10 +29,11 @@ export class WorkService {
 		const work = this.workRepository.create(createWorkDto);
 		work.status = WorkStatus.Process
 		work.user = user;
+		let plan = null;
 		if (planId) {
-			const plan = await this.planRepository.findOne(planId);
-			work.plan = plan;
+			plan = await this.planRepository.findOne(planId);
 		}
+		work.plan = plan;
 		if (dateList?.length == 0 || !dateList) {
 			dateList = this.genDateByRule(work.repeatType, work.repeatStep, work.whichDay, work.startDate, work.endDate);
 		}
@@ -43,13 +44,18 @@ export class WorkService {
 		return await getManager().transaction(async transactionalEntityManager => {
 			await transactionalEntityManager.save(work);
 			for (var i = 0; i < dateList.length; i++) {
+				const dateTimestamp = new Date(dateList[i]).getTime()
 				const workItem = new WorkItem();
+				workItem.name = work.name;
+				workItem.content = work.content;
 				workItem.date = dateList[i];
-				workItem.dayWorkStartTime = work.dayWorkStartTime;
-				workItem.dayWorkEndTime = work.dayWorkEndTime;
+				workItem.dayWorkStartTime = (dateTimestamp + work.dayWorkStartTime) / 1000;
+				workItem.dayWorkEndTime = (dateTimestamp + work.dayWorkEndTime) / 1000;
 				workItem.result = '';
 				workItem.work = work;
 				workItem.user = user;
+				workItem.planCascaderPath = work.planCascaderPath;
+				workItem.plan = plan;
 				await transactionalEntityManager.save(workItem);
 			}
 		});
@@ -147,7 +153,8 @@ export class WorkService {
 					qb.andWhere("workItem.date <= :endDate", { endDate })
 				}
 			}))
-			.orderBy('workItem.date', 'ASC').getMany();
+			.orderBy('workItem.date', 'ASC')
+			.orderBy('workItem.dayWorkStartTime', 'ASC').getMany();
 		var dateCollection: Map<string, WorkItem[]> = new Map();
 		workItems.map((item) => {
 			if (dateCollection[item.date] === undefined) {
@@ -159,7 +166,7 @@ export class WorkService {
 		return dateCollection;
 	}
 
-	async update(id: string, updateWorkDto: UpdateWorkDto, dateList: string[], planId: string) {
+	async update(id: string, updateWorkDto: UpdateWorkDto) {
 		var work = await this.workRepository.findOne(id, { relations: ['user'] });
 		work.name = updateWorkDto.name;
 		work.content = updateWorkDto.content;
@@ -172,11 +179,13 @@ export class WorkService {
 		work.dayWorkEndTime = updateWorkDto.dayWorkEndTime;
 		work.sort = updateWorkDto.sort;
 		work.planCascaderPath = updateWorkDto.planCascaderPath;
-		if (planId) {
-			const plan = await this.planRepository.findOne(planId);
-			work.plan = plan;
+		let plan = null
+		if (updateWorkDto.planId) {
+			plan = await this.planRepository.findOne(updateWorkDto.planId);
 		}
-		if (dateList?.length == 0 || !dateList) {
+		work.plan = plan;
+		let dateList = [];
+		if (updateWorkDto.dateList?.length == 0 || !updateWorkDto.dateList) {
 			dateList = this.genDateByRule(work.repeatType, work.repeatStep, work.whichDay, work.startDate, work.endDate);
 		}
 		dateList = this.filterDateList(dateList)
@@ -193,12 +202,17 @@ export class WorkService {
 			await transactionalEntityManager.getRepository(Work).update(id, work);
 			await transactionalEntityManager.getRepository(WorkItem).remove(workItems);
 			for (var i = 0; i < dateList.length; i++) {
+				const dateTimestamp = new Date(dateList[i]).getTime()
 				const workItem = new WorkItem();
+				workItem.name = work.name;
+				workItem.content = work.content;
 				workItem.date = dateList[i];
-				workItem.dayWorkStartTime = work.dayWorkStartTime;
-				workItem.dayWorkEndTime = work.dayWorkEndTime;
+				workItem.dayWorkStartTime = (dateTimestamp + work.dayWorkStartTime) / 1000;
+				workItem.dayWorkEndTime = (dateTimestamp + work.dayWorkEndTime) / 1000;
 				workItem.result = '';
 				workItem.work = work;
+				workItem.plan = plan;
+				workItem.planCascaderPath = updateWorkDto.planCascaderPath;
 				workItem.user = work.user;
 				await transactionalEntityManager.save(workItem);
 			}
@@ -228,18 +242,14 @@ export class WorkService {
 		var work = await this.workRepository.findOne(id, { relations: ['plan'] });
 		await transactionalEntityManager.getRepository(Work).update(id, { status: WorkStatus.Success });
 		if (work.plan?.id) {
-			var workNotDone = await this.workRepository.find({
-				where: {
-					plan: work.plan,
-					status: WorkStatus.Process.toString()
-				}
-			});
-			var planNotDoneCount = await this.planRepository.count({
-				where: {
-					parent: work.plan,
-					status: PlanStatus.Process.toString()
-				}
-			});
+			var workNotDone = await this.workRepository.find({ where: { plan: work.plan, status: WorkStatus.Process.toString() } });
+			var planNotDoneCount = await this.planRepository.count({ where: { parent: work.plan, status: PlanStatus.Process.toString() } });
+			// var planNotDoneCount = await this.planRepository.count({
+			// 	where: {
+			// 		parent: work.plan,
+			// 		status: PlanStatus.Process.toString()
+			// 	}
+			// });
 			if (((workNotDone.length === 1 && workNotDone[0].id === id)
 				|| workNotDone.length === 0)
 				&& planNotDoneCount === 0) {

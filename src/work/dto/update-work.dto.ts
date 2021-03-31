@@ -13,4 +13,6 @@ export class UpdateWorkDto {
 	dayWorkEndTime: number;
 	sort: number;
 	planCascaderPath: string;
+	planId: string;
+	dateList: string[];
 }

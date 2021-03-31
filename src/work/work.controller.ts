@@ -40,8 +40,8 @@ export class WorkController {
 
 	@UseGuards(JwtAuthGuard)
 	@Patch(':id')
-	update(@Param('id') id: string, @Body() updateWorkDto: UpdateWorkDto, @Body("dateList") dateList: string[], @Body("planId") planId: string) {
-		return this.workService.update(id, updateWorkDto, dateList, planId);
+	update(@Param('id') id: string, @Body() updateWorkDto: UpdateWorkDto) {
+		return this.workService.update(id, updateWorkDto);
 	}
 
 	@UseGuards(JwtAuthGuard)
