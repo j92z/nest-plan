@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, UseGuards, Body, Patch, Request } from '@nestjs/common';
+import { Controller, Get, Post, Param, UseGuards, Body, Patch, Request, Delete } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CreateWorkItemDto } from './dto/create-work-item.dto';
 import { UpdateWorkItemDto } from './dto/update-work-item.dto';
@@ -43,5 +43,11 @@ export class WorkItemController {
 	@Get('/detail/:id')
 	findOne(@Param('id') id: string) {
 		return this.workItemService.findOne(id);
+	}
+
+	@UseGuards(JwtAuthGuard)
+	@Delete(':id')
+	remove(@Param('id') id: string) {
+		return this.workItemService.remove(id);
 	}
 }

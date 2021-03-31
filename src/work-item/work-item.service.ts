@@ -134,4 +134,8 @@ export class WorkItemService {
 			relations: ['work']
 		})
 	}
+
+	remove(id: string) {
+		return this.workItemRepository.delete(id);
+	}
 }

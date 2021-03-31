@@ -2,10 +2,10 @@ export default {
     // 数据库配置
     database: {
         type: 'mysql',
-        host: 'localhost',
-        port: 3307,
+        host: 'mysql',
+        port: 3306,
         username: 'root',
-        password: '1qaz',
+        password: '1qaz123',
         database: 'plan',
         // timezone: 'UTC',
         // charset: 'utf8mb4',
