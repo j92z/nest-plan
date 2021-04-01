@@ -2,8 +2,6 @@ version: '3.8'
 services:
     plan-mysql:
         image: cozzz/mysql
-        ports:
-            - "3308:3306"
         volumes:
             - ./data/mysql/:/var/lib/mysql/:rw
             - ./log/mysql/:/var/lib/mysql-logs/:rw
